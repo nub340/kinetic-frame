@@ -1,7 +1,16 @@
-# Kinetic Art Frame
+# Kinetic Frame
 
 ## Description
-This is an open-source project for building a kinetic art frame. The "shredder" frame variant, when fully built, mimics the infamous stunt Banksy pulled off at a Sotheby's auction back in 2018. However, where the original device actually shredded the artwork contained within the frame, this one is an illusion. While it really <em>looks</em> like the artwork inside is being shredded, it's actually an artful deception. In reality, a separate pre-shredded copy of the artwork is concealed within the frame, which is cleverly lowered from the bottom of the device while the displayed artwork smoothly scrolls down and out of view, resulting in a very convincing illusion. The device can then be reset to it's original state so the illusion can be enjoyed again and again, indefinitely!
+This is an open-source project for building a kinetic art frame. 
+
+The "shredder" variant, mimics the infamous stunt Banksy pulled off at a Sotheby's auction back in 2018. However, where the original device actually shredded the artwork contained within the frame, this one is an illusion. While it really <em>looks</em> like the artwork inside is being shredded, it's actually an artful deception. In reality, a separate pre-shredded copy of the artwork is concealed within the frame, which is cleverly lowered from the bottom of the device while the displayed artwork smoothly scrolls down and out of view, resulting in a very convincing illusion. The device can then be reset to it's original state so the performance can be enjoyed again and again, indefinitely!
+
+The "scroller" variant, is a simplified version that simply scrolls the artwork in a few different ways: 
+- Continuously scrolling - Keep scrolling the same direction, continuously.
+- Panning - Slowly scroll all the way down, stop, then all the way back up again, stop, repeat.
+- Toggle - switch between two different images
+
+The main artwork needs to be printed onto a 13.5" x 36" canvas belt (or similar). The belt is mounted on rollers that are spun by a stepper motor. The "shredder" variant also requires a second copy of the artwork to be mounted to a clip hung from a fishing line. See the assembly instructions for more details.
 
 ## Authors
 - [nub340](https://github.com/nub340)
