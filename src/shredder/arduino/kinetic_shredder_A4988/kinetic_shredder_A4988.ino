@@ -35,9 +35,6 @@ void setup() {
   Serial.begin(9600);
   while (!Serial); //wait until ready
 
-//  setShreddedState(false);
-//  setMutedState(false);
-
   isShredded = getShreddedState();
   isMuted = getMutedState();
   location = getLocationState();
