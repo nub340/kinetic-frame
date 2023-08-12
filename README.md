@@ -1,7 +1,7 @@
 # Banksy Frame
 
 ## Description
-This is an open-source project for building a Banksy-style "shredder" frame that, when fully built, mimics the infamous stunt he pulled off at a Sotheby's auction back in 2018. However, where the original Banksy shredder frame actually shredded the artwork contained within the frame, this one does not. While it <em>appears</em> that the artwork inside is being shredded, it's actually an artful deception. You see, a separate pre-shredded copy of the artwork is concealed within the frame, which is cleverly lowered from the bottom of the frame while the displayed artwork smoothly scrolls down and out of view, resulting in a very convincing illusion. The artwork can then be returned to it's original state so the effect can be enjoyed over and over again.
+This is an open-source project for building a kinetic "shredder" frame that, when fully built, mimics the infamous stunt Banksy pulled off at a Sotheby's auction back in 2018. However, where the original device actually shredded the artwork contained within the frame, this one is an illusion. While it really <em>looks</em> like the artwork inside is being shredded, it's actually an artful deception. In reality, a separate pre-shredded copy of the artwork is concealed within the frame, which is cleverly lowered from the bottom of the device while the displayed artwork smoothly scrolls down and out of view, resulting in a very convincing illusion. The device can then be reset to it's original state so the illusion can be enjoyed again and again, indefinitely!
 
 ## Authors
 - [nub340](https://github.com/nub340)
