@@ -1,17 +1,16 @@
 #include <IRremote.hpp>
 #include <EEPROM.h>
 
-// Define where in memory to start storing state (i.e. offset). 
 #define EEPROM_ADDRESS 0
 
-// Define Arduino pins
+// Define stepper motor connections and steps per revolution:
 #define BUZZER_PIN 2
 #define SLEEP_PIN 3
+#define STEP_PIN 4
 #define DIR_PIN 5
 #define IR_PIN 6
 #define EN_PIN 7
 
-// Define IR remote command codes
 #define IR_BUTTON_OK 28
 #define IR_BUTTON_UP 24
 #define IR_BUTTON_DOWN 82
@@ -20,35 +19,29 @@
 #define IR_BUTTON_ASTERISK 22
 #define IR_BUTTON_POUND 13
 
-// Define stepper motor parameters
 #define STEPS_PER_REV 200
 #define SPEED_DELAY 5000
 #define TOTAL_REVS 2.6
 #define TOTAL_STEPS (STEPS_PER_REV * TOTAL_REVS)
 
-// Initialize globals
 IRrecv irrecv(IR_PIN);
-// Tracks how long the buzzer has been in the current state
 long lastBuzzerMillis = 0;
-// Tracks the state of the buzzer. LOW = OFF, HIGH = ON
 int buzzerState = LOW;
-// Tracks whether the frame is currently in the shredded state or not
 bool isShredded = false;
-// Tracks whether the mute function is enabled or not
 bool isMuted = false;
-// Tracks the position of the main canvas belt
-int position = 0;
+int location = 0;
 
 void setup() {
   Serial.begin(9600);
   while (!Serial); //wait until ready
 
-  // Restore state from EEPROM
+//  setShreddedState(false);
+//  setMutedState(false);
+
   isShredded = getShreddedState();
   isMuted = getMutedState();
-  position = getLocationState();
+  location = getLocationState();
   
-  // Setup pin modes
   pinMode(EN_PIN, OUTPUT);
   digitalWrite(EN_PIN, LOW); // Enable driver (LOW means Enable)
 
@@ -63,17 +56,15 @@ void setup() {
 
   pinMode(BUZZER_PIN, OUTPUT);
 
-  // Start listening for IR commands
   IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK);
 
-  // Output debug messages to serial monitor
   Serial.println("Running...");
-  if (position > 0){
+  if (location > 0){
     Serial.println("Recovering...");
-    stepReverse(position, false);
-  } else if (position < 0) {
+    stepReverse(location, false);
+  } else if (location < 0) {
     Serial.println("Recovering...");
-    stepForward(abs(position), false);
+    stepForward(abs(location), false);
   }
 
   Serial.print("Muted: ");
@@ -81,12 +72,9 @@ void setup() {
   Serial.print(", Shredded: ");
   Serial.print(isShredded);
   Serial.print(", Location: ");
-  Serial.println(position);
+  Serial.println(location);
 }
 
-/**
-Main loop
-*/
 void loop() {
 
   // Returns 0 if no data ready, 1 if data ready.
@@ -99,14 +87,11 @@ void loop() {
     Serial.print(isMuted);
     Serial.print(", Shredded: ");
     Serial.print(isShredded);
-    Serial.print(", Position: ");
-    Serial.println(position);
+    Serial.print(", Location: ");
+    Serial.println(location);
   }
 }
 
-/*
-Handles IR remote commands
-*/
 void handleIRRemoteCommand(int command) {
   if (command != 0) {
     Serial.print("command: ");
@@ -130,59 +115,65 @@ void handleIRRemoteCommand(int command) {
       break;
 
     case IR_BUTTON_ASTERISK:
-      Serial.println("Reset position");
-      resetPositionState();
+      Serial.println("Reset location");
+      resetLocationState();
       break;
 
     case IR_BUTTON_LEFT:
-      if(!isShredded){
-        Serial.println("Shredding");
-        enterShreddedState();
-      } else {
-        Serial.println("Already shredded");
-      }
+      enterShreddedState();
       break;
 
     case IR_BUTTON_RIGHT:
-      if(isShredded){
-        Serial.println("Restoring");
-        enterNormalState();
-      } else {
-        Serial.println("Already restored");
-      }
+      enterNormalState();
       break;
 
     case IR_BUTTON_POUND:
-      Serial.println("Toggle state");
       toggleMute();
       break;
   }
 }
 
-/*
-Run main shred/un-shred sequence
-*/
 void runMainSequence() {
   Serial.println("runMainSequence");
+  
+  // Keep track of how long the IR receiver has been stopped
   int startMillis = millis();
   IrReceiver.stop();
-  stepForward(TOTAL_STEPS, true);
-  setShreddedState(true);
+
+  // If already in the shredded state, run the main sequence in reverse
+  bool isSequenceReversed = isShredded;
+  
+  if(isSequenceReversed){
+    stepReverse(TOTAL_STEPS, false);
+    setShreddedState(false);
+  } else {
+    stepForward(TOTAL_STEPS, true);
+    setShreddedState(true);
+  }
+
   Serial.println("Waiting 5 seconds...");
   delay(5000);
-  stepReverse(TOTAL_STEPS, false);
-  setShreddedState(false);
+
+  if(isSequenceReversed){
+    stepForward(TOTAL_STEPS, true);
+    setShreddedState(true);
+  } else {
+    stepReverse(TOTAL_STEPS, false);
+    setShreddedState(false);
+  }
+  
   Serial.println("Waiting 5 seconds...");
   delay(5000);
   Serial.println("Running...");
+
+  // Calculate how long the timer has been stopped. 
+  // Start IR receiver again and pass the elapsed time to avoid bug with internal clock.
   int elapsedMicros = (millis() - startMillis) * 1000;
   IrReceiver.start(elapsedMicros);
 }
 
-/*
-Toggles the mute feature on/off
-*/
 void toggleMute() {
+  Serial.println("Toggling mute");
   setMutedState(!isMuted);
   int startMillis = millis();
   //must stop the IRReceiver as the tone/notone functions need to use the same timer
@@ -195,21 +186,16 @@ void toggleMute() {
   IrReceiver.start(elapsedMicros); 
 }
 
-/*
-Resets the position state to zero.
-*/
-void resetPositionState() {
-  position = 0;
+void resetLocationState() {
+  location = 0;
 }
 
-/*
-Enter the shredded state if not already there
-*/
 void enterShreddedState() {
   if (isShredded) {
+    Serial.println("Already shredded");
     return;
   }
-  Serial.println("enterShreddedState");
+  Serial.println("Shredding...");
   int startMillis = millis();
   IrReceiver.stop();
   stepForward(TOTAL_STEPS, true);
@@ -218,25 +204,21 @@ void enterShreddedState() {
   IrReceiver.start(elapsedMicros);
 }
 
-/*
-Enter normal state if not already there
-*/
 void enterNormalState() {
   if (!isShredded) {
+    Serial.println("Already restored");
     return;
   }
-  Serial.println("enterNormalState");
+  Serial.println("Restoring...");
   int startMillis = millis();
   IrReceiver.stop();
   stepReverse(TOTAL_STEPS, false);
   setShreddedState(false);
   int elapsedMicros = (millis() - startMillis) * 1000;
   IrReceiver.start(elapsedMicros);
+  resetLocationState();
 }
 
-/*
-Move the position of the canvas down a bit
-*/
 void stepForward(int steps, bool playBuzzer) {
   Serial.print("stepForward(");
   Serial.print(steps);
@@ -254,14 +236,11 @@ void stepForward(int steps, bool playBuzzer) {
     digitalWrite(STEP_PIN, LOW);
     delayMicroseconds(SPEED_DELAY);
   }
-  setLocationState(position+steps);
+  setLocationState(location+steps);
   digitalWrite(SLEEP_PIN, LOW);
   noTone(BUZZER_PIN);
 }
 
-/*
-Move the position of the canvas up a bit
-*/
 void stepReverse(int steps, bool playBuzzer) {
   Serial.print("stepReverse(");
   Serial.print(steps);
@@ -280,14 +259,11 @@ void stepReverse(int steps, bool playBuzzer) {
     delayMicroseconds(SPEED_DELAY);
     
   }
-  setLocationState(position-steps);
+  setLocationState(location-steps);
   digitalWrite(SLEEP_PIN, LOW);
   noTone(BUZZER_PIN);
 }
 
-/*
-Handles making the buzzer beep on and off at ther right pitch and tempo
-*/
 void handleBuzzer() {
   if(isMuted) {
     buzzerState = LOW;
@@ -308,63 +284,39 @@ void handleBuzzer() {
   }
 }
 
-/*
-Persist the shredded state to memory
-*/
 void setShreddedState(bool newShreddedState) {
   isShredded = newShreddedState;
   EEPROM.write(EEPROM_ADDRESS, isShredded);
 }
 
-/*
-Reads the shredded state from memory
-*/
 bool getShreddedState() {
   return EEPROM.read(EEPROM_ADDRESS);
 }
 
-/*
-Persist the mute state to memory
-*/
 void setMutedState(bool newMutedState) {
   isMuted = newMutedState;
   EEPROM.write(EEPROM_ADDRESS+1, isMuted);
 }
 
-/*
-Read the mute state from memory
-*/
 bool getMutedState() {
   return EEPROM.read(EEPROM_ADDRESS+1);
 }
 
-/*
-Persist the location state to memory
-*/
 void setLocationState(int newLocationState) {
-  position = newLocationState;
-  writeIntIntoEEPROM(EEPROM_ADDRESS+2, position);
+  location = newLocationState;
+  writeIntIntoEEPROM(EEPROM_ADDRESS+2, location);
 }
 
-/*
-Read the location state from memory
-*/
 int getLocationState() {
   return readIntFromEEPROM(EEPROM_ADDRESS+2);
 }
 
-/*
-Helper function for writing an integer value to memory
-*/
 void writeIntIntoEEPROM(int address, int number)
 { 
   EEPROM.write(address, number >> 8);
   EEPROM.write(address + 1, number & 0xFF);
 }
 
-/**
-Helper function for reading an integer value from memory
-*/
 int readIntFromEEPROM(int address)
 {
   byte byte1 = EEPROM.read(address);
