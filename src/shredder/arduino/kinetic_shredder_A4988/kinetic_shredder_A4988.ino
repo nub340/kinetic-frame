@@ -1,5 +1,7 @@
+#include <Arduino.h>
 #include <IRremote.hpp>
 #include <EEPROM.h>
+#include "BasicStepperDriver.h"
 
 #define EEPROM_ADDRESS 0
 
@@ -11,6 +13,16 @@
 #define IR_PIN 6
 #define EN_PIN 7
 
+#define IR_BUTTON_1 69
+#define IR_BUTTON_2 70
+#define IR_BUTTON_3 71
+#define IR_BUTTON_4 68
+#define IR_BUTTON_5 64
+#define IR_BUTTON_6 67
+#define IR_BUTTON_7 7
+#define IR_BUTTON_8 21
+#define IR_BUTTON_9 9
+#define IR_BUTTON_0 25
 #define IR_BUTTON_OK 28
 #define IR_BUTTON_UP 24
 #define IR_BUTTON_DOWN 82
@@ -20,9 +32,28 @@
 #define IR_BUTTON_POUND 13
 
 #define STEPS_PER_REV 200
-#define SPEED_DELAY 5000
+#define RPM_1 10
+#define RPM_2 20
+#define RPM_3 30
+#define RPM_4 40
+#define RPM_5 50
+#define RPM_6 60
+#define RPM_7 70
+#define RPM_8 80
+#define RPM_9 90
+#define RPM_0 100
+
+// 1=full step, 2=half step etc.
+#define MICROSTEPS 1
+#define SPEED_DELAY_NORMAL 5000
+#define SPEED_DELAY_SLOW 10000
+#define MOTOR_ACCEL 2000
+#define MOTOR_DECEL 1000
 #define TOTAL_REVS 2.6
 #define TOTAL_STEPS (STEPS_PER_REV * TOTAL_REVS)
+
+BasicStepperDriver stepper(STEPS_PER_REV, DIR_PIN, STEP_PIN, SLEEP_PIN);
+//A4988 stepper(STEPS_PER_REV, DIR_PIN, STEP_PIN, SLEEP_PIN, 8, 9, 10);
 
 IRrecv irrecv(IR_PIN);
 long lastBuzzerMillis = 0;
@@ -30,26 +61,18 @@ int buzzerState = LOW;
 bool isShredded = false;
 bool isMuted = false;
 int location = 0;
+int current_rpm = RPM_1;
 
 void setup() {
   Serial.begin(9600);
   while (!Serial); //wait until ready
 
+  stepper.begin(current_rpm, MICROSTEPS);
+
   isShredded = getShreddedState();
   isMuted = getMutedState();
   location = getLocationState();
-  
-  pinMode(EN_PIN, OUTPUT);
-  digitalWrite(EN_PIN, LOW); // Enable driver (LOW means Enable)
-
-  pinMode(DIR_PIN, OUTPUT);
-  digitalWrite(DIR_PIN, HIGH);
-
-  pinMode(STEP_PIN, OUTPUT);
-  digitalWrite(STEP_PIN, LOW);
-
-  pinMode(SLEEP_PIN, OUTPUT);
-  digitalWrite(SLEEP_PIN, LOW);
+  current_rpm = getRPMState();
 
   pinMode(BUZZER_PIN, OUTPUT);
 
@@ -113,7 +136,7 @@ void handleIRRemoteCommand(int command) {
 
     case IR_BUTTON_ASTERISK:
       Serial.println("Reset location");
-      resetLocationState();
+      resetHomeLocation();
       break;
 
     case IR_BUTTON_LEFT:
@@ -127,6 +150,46 @@ void handleIRRemoteCommand(int command) {
     case IR_BUTTON_POUND:
       toggleMute();
       break;
+
+    case IR_BUTTON_1:
+      setRPMState(RPM_1);
+      break;
+
+    case IR_BUTTON_2:
+      setRPMState(RPM_2);
+      break;
+
+    case IR_BUTTON_3:
+      setRPMState(RPM_3);
+      break;
+
+    case IR_BUTTON_4:
+      setRPMState(RPM_4);
+      break;    
+
+    case IR_BUTTON_5:
+      setRPMState(RPM_5);
+      break; 
+
+    case IR_BUTTON_6:
+      setRPMState(RPM_6);
+      break; 
+
+    case IR_BUTTON_7:
+      setRPMState(RPM_7);
+      break; 
+
+    case IR_BUTTON_8:
+      setRPMState(RPM_8);
+      break; 
+
+    case IR_BUTTON_9:
+      setRPMState(RPM_9);
+      break; 
+
+    case IR_BUTTON_0:
+      setRPMState(RPM_0);
+      break; 
   }
 }
 
@@ -141,10 +204,12 @@ void runMainSequence() {
   bool isSequenceReversed = isShredded;
   
   if(isSequenceReversed){
-    stepReverse(TOTAL_STEPS, false);
+    rotateDegrees(0-TOTAL_STEPS, false);
+    //stepReverse(TOTAL_STEPS, false);
     setShreddedState(false);
   } else {
-    stepForward(TOTAL_STEPS, true);
+    rotateDegrees(TOTAL_STEPS, true);
+    //stepForward(TOTAL_STEPS, true);
     setShreddedState(true);
   }
 
@@ -152,10 +217,12 @@ void runMainSequence() {
   delay(5000);
 
   if(isSequenceReversed){
-    stepForward(TOTAL_STEPS, true);
+    rotateDegrees(TOTAL_STEPS, true);
+    //stepForward(TOTAL_STEPS, true);
     setShreddedState(true);
   } else {
-    stepReverse(TOTAL_STEPS, false);
+    rotateDegrees(0-TOTAL_STEPS, false);
+    //stepReverse(TOTAL_STEPS, false);
     setShreddedState(false);
   }
   
@@ -172,6 +239,10 @@ void runMainSequence() {
 void toggleMute() {
   Serial.println("Toggling mute");
   setMutedState(!isMuted);
+  beepOnce();
+}
+
+void beepOnce() {
   int startMillis = millis();
   //must stop the IRReceiver as the tone/notone functions need to use the same timer
   IrReceiver.stop(); 
@@ -183,8 +254,17 @@ void toggleMute() {
   IrReceiver.start(elapsedMicros); 
 }
 
-void resetLocationState() {
-  location = 0;
+void resetHomeLocation() {
+  setLocationState(0);
+  setShreddedState(false);
+  beepOnce();
+}
+
+void setRpm(int rpm) {
+  stepper.stop();
+  stepper.begin(rpm, MICROSTEPS);
+  setRPMState(rpm);
+  beepOnce();
 }
 
 void enterShreddedState() {
@@ -210,10 +290,15 @@ void enterNormalState() {
   int startMillis = millis();
   IrReceiver.stop();
   stepReverse(TOTAL_STEPS, false);
-  setShreddedState(false);
   int elapsedMicros = (millis() - startMillis) * 1000;
   IrReceiver.start(elapsedMicros);
-  resetLocationState();
+  resetHomeLocation();
+}
+
+void rotateDegrees(int deg, bool playBuzzer) {
+  stepper.enable();
+  stepper.move(deg);
+  stepper.disable();
 }
 
 void stepForward(int steps, bool playBuzzer) {
@@ -229,9 +314,9 @@ void stepForward(int steps, bool playBuzzer) {
       handleBuzzer();
     }
     digitalWrite(STEP_PIN, HIGH);
-    delayMicroseconds(SPEED_DELAY);
+    delayMicroseconds(SPEED_DELAY_SLOW);
     digitalWrite(STEP_PIN, LOW);
-    delayMicroseconds(SPEED_DELAY);
+    delayMicroseconds(SPEED_DELAY_SLOW);
   }
   setLocationState(location+steps);
   digitalWrite(SLEEP_PIN, LOW);
@@ -251,9 +336,9 @@ void stepReverse(int steps, bool playBuzzer) {
       handleBuzzer();
     }
     digitalWrite(STEP_PIN, HIGH);
-    delayMicroseconds(SPEED_DELAY);
+    delayMicroseconds(SPEED_DELAY_SLOW);
     digitalWrite(STEP_PIN, LOW);
-    delayMicroseconds(SPEED_DELAY);
+    delayMicroseconds(SPEED_DELAY_SLOW);
     
   }
   setLocationState(location-steps);
@@ -283,40 +368,44 @@ void handleBuzzer() {
 
 void setShreddedState(bool newShreddedState) {
   isShredded = newShreddedState;
-  EEPROM.write(EEPROM_ADDRESS, isShredded);
+  EEPROM.put(EEPROM_ADDRESS, isShredded);
 }
 
 bool getShreddedState() {
-  return EEPROM.read(EEPROM_ADDRESS);
+  bool shredded;
+  EEPROM.get(EEPROM_ADDRESS, shredded);
+  return shredded;
 }
 
 void setMutedState(bool newMutedState) {
   isMuted = newMutedState;
-  EEPROM.write(EEPROM_ADDRESS+1, isMuted);
+  EEPROM.put(EEPROM_ADDRESS+1, isMuted);
 }
 
 bool getMutedState() {
-  return EEPROM.read(EEPROM_ADDRESS+1);
+  bool isMuted;
+  EEPROM.get(EEPROM_ADDRESS+1, isMuted);
+  return isMuted;
 }
 
 void setLocationState(int newLocationState) {
   location = newLocationState;
-  writeIntIntoEEPROM(EEPROM_ADDRESS+2, location);
+  EEPROM.put(EEPROM_ADDRESS+2, location);
 }
 
 int getLocationState() {
-  return readIntFromEEPROM(EEPROM_ADDRESS+2);
+  int location;
+  EEPROM.get(EEPROM_ADDRESS+2, location);
+  return location;
 }
 
-void writeIntIntoEEPROM(int address, int number)
-{ 
-  EEPROM.write(address, number >> 8);
-  EEPROM.write(address + 1, number & 0xFF);
+void setRPMState(int rpm) {
+  current_rpm = rpm;
+  EEPROM.put(EEPROM_ADDRESS+2+sizeof(int), rpm);
 }
 
-int readIntFromEEPROM(int address)
-{
-  byte byte1 = EEPROM.read(address);
-  byte byte2 = EEPROM.read(address + 1);
-  return (byte1 << 8) + byte2;
+int getRPMState() {
+  int rpm;
+  EEPROM.get(EEPROM_ADDRESS+2+sizeof(int), rpm);
+  return rpm;
 }
