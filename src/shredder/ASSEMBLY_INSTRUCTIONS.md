@@ -5,7 +5,6 @@ Ensure that you have all of the parts and tools on hand before continuing.
 
 - [Parts](PARTS_LIST.md)
 - [Tools](TOOLS_LIST.md)
-- [Software](SOFTWARE.md)
 
 ## 1. Assemble the PCB chassis
 Use the included 3D printed jig to position the PCB pieces so their corners meet at a 90 degree angle.
