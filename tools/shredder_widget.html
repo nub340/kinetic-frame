@@ -1,0 +1,124 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  </head>
+  <body>
+    <style>
+      .outer {
+        position: absolute;
+      }
+      .outer div.file-input {
+        position: absolute;
+        top: 70vh;
+        width: 50vh;
+      }
+      .form-control {
+        display: block;
+        text-align: center;
+        margin: auto;
+      }
+
+      .inner {
+        width: 60vh;
+        height: 68vh;
+        border: solid black 0px;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      .inner img {
+        object-fit: cover;
+        max-width: 100%;
+        max-height: 100%;
+        margin: auto;
+      }
+      .art-canvas {
+        height: 100%;
+        width: 70%;
+        margin: auto;
+        background-image: url("./girl_with_balloon.jpg");
+        /* background-image: url("color.theory.2.png"); */
+        background-position: 0 0;
+        background-repeat: no-repeat;
+        background-size: cover;
+      }
+    </style>
+
+    <div class="file-input">
+      <input
+        type="file"
+        name="image"
+        class="form-control"
+        accept="image/*"
+        onchange="updatePreview(this, 'image-preview')"
+      />
+    </div>
+    <br />
+
+    <div class="outer">
+      <div class="inner">
+        <div id="artwork" class="art-canvas"></div>
+      </div>
+      <div class="inner">
+        <img
+          src="https://images.squarespace-cdn.com/content/64d1a8bf8cc0221cec24e1e7/6a4d9bee-ae4f-4166-a38e-6f7bb6fda102/banksy_frame.png"
+        />
+      </div>
+    </div>
+
+    <script>
+      var startPos = 0;
+      var stopPos = 500;
+      var increment = 0.5;
+      var currentPos;
+      var restart = true;
+      var dirForward = true;
+
+      document.addEventListener("DOMContentLoaded", function (event) {
+        var art = document.getElementById("artwork");
+
+        function move() {
+          console.table(restart, dirForward, art.style.backgroundPosition);
+
+          if (restart) {
+            currentPos = startPos;
+            dirForward = true;
+            restart = false;
+          }
+          art.style.backgroundPosition = "0 " + currentPos + "vh";
+          if (dirForward) {
+            if (currentPos < stopPos) {
+              currentPos += increment;
+              setTimeout(move, 100);
+            } else {
+              dirForward = false;
+              setTimeout(move, 2000);
+            }
+          } else {
+            if (currentPos > startPos) {
+              currentPos -= increment;
+              setTimeout(move, 100);
+            } else {
+              dirForward = true;
+              setTimeout(move, 2000);
+            }
+          }
+        }
+
+        move();
+      });
+
+      function updatePreview(input, target) {
+        let file = input.files[0];
+        let reader = new FileReader();
+        var art = document.getElementById("artwork");
+
+        reader.readAsDataURL(file);
+        reader.onload = function () {
+          art.style.backgroundImage = `url(${reader.result})`;
+          restart = true;
+        };
+      }
+    </script>
+  </body>
+</html>
