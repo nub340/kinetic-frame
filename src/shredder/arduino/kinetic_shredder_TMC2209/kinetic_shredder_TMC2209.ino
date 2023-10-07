@@ -271,42 +271,32 @@ void writeStateToSerial() {
   Serial.println("");
 }
 
-void setShreddedState(bool newShreddedState) {
-  isShredded = newShreddedState;
-  EEPROM.write(EEPROM_ADDRESS, isShredded);
+void setShreddedState(bool shredded) {
+  EEPROM.put(EEPROM_ADDRESS, shredded);
 }
 
 bool getShreddedState() {
-  return EEPROM.read(EEPROM_ADDRESS);
+  bool shredded;
+  EEPROM.get(EEPROM_ADDRESS, shredded);
+  return shredded;
 }
 
-void setMutedState(bool newMutedState) {
-  isMuted = newMutedState;
-  EEPROM.write(EEPROM_ADDRESS+1, isMuted);
+void setMutedState(bool isMuted) {
+  EEPROM.put(EEPROM_ADDRESS+1, isMuted);
 }
 
 bool getMutedState() {
-  return EEPROM.read(EEPROM_ADDRESS+1);
+  bool isMuted;
+  EEPROM.get(EEPROM_ADDRESS+1, isMuted);
+  return isMuted;
 }
 
-void setLocationState(int newLocationState) {
-  location = newLocationState;
-  writeIntIntoEEPROM(EEPROM_ADDRESS+2, location);
+void setLocationState(int location) {
+  EEPROM.put(EEPROM_ADDRESS+2, location);
 }
 
 int getLocationState() {
-  return readIntFromEEPROM(EEPROM_ADDRESS+2);
-}
-
-void writeIntIntoEEPROM(int address, int number)
-{ 
-  EEPROM.write(address, number >> 8);
-  EEPROM.write(address + 1, number & 0xFF);
-}
-
-int readIntFromEEPROM(int address)
-{
-  byte byte1 = EEPROM.read(address);
-  byte byte2 = EEPROM.read(address + 1);
-  return (byte1 << 8) + byte2;
+  int location;
+  EEPROM.get(EEPROM_ADDRESS+2, location);
+  return location;
 }
