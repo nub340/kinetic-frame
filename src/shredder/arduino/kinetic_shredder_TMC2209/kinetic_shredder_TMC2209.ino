@@ -28,7 +28,7 @@
 #define STEPS_PER_REV 200
 #define SPEED_DELAY 5000
 #define TOTAL_REVS 2.6
-#define TOTAL_STEPS (STEPS_PER_REV * TOTAL_REVS)
+#define TOTAL_STEPS (STEPS_PER_REV * TOTAL_REVS) * 8
 
 #define DRIVER_ADDRESS   0b00   // TMC2209 Driver address according to MS1 and MS2
 #define R_SENSE 0.11f           // SilentStepStick series use 0.11 ...and so does my fysetc TMC2209 (?)
@@ -49,12 +49,12 @@ void setup() {
 
   pinMode(BUZZ_PIN, OUTPUT);
   pinMode(STEP_PIN, OUTPUT);
-  pinMode(DIR_PIN, OUTPUT);
+  // pinMode(DIR_PIN, OUTPUT);
 
   pinMode(EN_PIN, OUTPUT);
   digitalWrite(EN_PIN, HIGH);
 
-  stepper.setMaxSpeed(100);       // Set the maximum speed in steps per second
+  stepper.setMaxSpeed(500);       // Set the maximum speed in steps per second
   stepper.setAcceleration(1000);   // Set the acceleration in steps per second^2
   
   IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK);
@@ -146,8 +146,8 @@ void runMainSequence() {
     setShreddedState(false);
   }
   
-  Serial.println("Waiting 5 seconds...");
-  delay(5000);
+  Serial.println("Waiting 3 seconds...");
+  delay(3000);
   Serial.println("Running...");
 
   // Calculate how long the timer has been stopped. 
@@ -203,12 +203,11 @@ void stepForward(int steps, bool playBuzzer) {
   Serial.print("stepForward(");
   Serial.print(steps);
   Serial.println(")");
-  //digitalWrite(SLEEP_PIN, HIGH);
   digitalWrite(EN_PIN, LOW);
-  digitalWrite(DIR_PIN, HIGH);
+  //digitalWrite(DIR_PIN, HIGH);
   delay(1);
 
-  stepper.move(steps);
+  stepper.move(0-steps);
   while (stepper.distanceToGo() != 0) {
     stepper.run();
     if (playBuzzer) {
@@ -226,7 +225,7 @@ void stepReverse(int steps, bool playBuzzer) {
   Serial.print(steps);
   Serial.println(")");
   digitalWrite(EN_PIN, LOW);
-  digitalWrite(DIR_PIN, LOW);
+  //digitalWrite(DIR_PIN, LOW);
   delay(1);
 
   stepper.move(steps);

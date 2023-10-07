@@ -1,4 +1,4 @@
-# Shredder Frame Kit Assembly Instructions
+# Kinetic Shredder Frame Kit Assembly Instructions
 
 ### Prerequisites
 Ensure that you have all of the parts and tools on hand before continuing.
