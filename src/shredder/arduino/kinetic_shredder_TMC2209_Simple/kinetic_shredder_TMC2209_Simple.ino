@@ -23,10 +23,11 @@
 #define IR_BUTTON_ASTERISK 22
 #define IR_BUTTON_POUND 13
 
+#define MICROSTEPS 8
 #define STEPS_PER_REV 200
 #define SPEED_DELAY 500
 #define TOTAL_REVS 2.6
-#define TOTAL_STEPS (STEPS_PER_REV * TOTAL_REVS) * 8
+#define TOTAL_STEPS (STEPS_PER_REV * TOTAL_REVS) * MICROSTEPS
 #define TRIM_STEPS 100 
 
 IRrecv irrecv(IR_PIN);
@@ -60,15 +61,11 @@ void setup() {
 
   IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK);
 
-  Serial.println("Running...");
-//  if (location > 0){
-//    Serial.println("Recovering...");
-//    stepReverse(location, false);
-//  } else if (location < 0) {
-//    Serial.println("Recovering...");
-//    stepForward(abs(location), false);
-//  }
+  _isShredded = getShreddedState();
+  _isMuted = getMutedState();
+  _location = getLocationState();
 
+  Serial.println("Running...");
   writeStateToSerial();
 }
 

@@ -1,8 +1,11 @@
-#include <AccelStepper.h>
 #include <IRremote.hpp>
 #include <EEPROM.h>
+#include <AccelStepper.h>
+#include <TMCStepper.h>
+#include <SoftwareSerial.h>
 
 #define EEPROM_ADDRESS 0
+#define DRIVER_ADDRESS 0b00 // TMC2209 Driver address according to MS1 and MS2
 
 #define BUZZER_PIN 2
 #define CLK_PIN 3
@@ -25,11 +28,16 @@
 #define IR_BUTTON_POUND 13
 
 #define STEPS_PER_REV 200
-#define SPEED_DELAY 5000
+#define SPEED_DELAY 500
+#define MAX_CURRENT 1000
+#define R_SENSE 0.11f
+#define MICROSTEPS  8 // Set the microstepping mode (1, 2, 4, 8, 16)
 #define TOTAL_REVS 2.6
-#define TOTAL_STEPS (STEPS_PER_REV * TOTAL_REVS) * 8
-#define TRIM_STEPS 100 
+#define TOTAL_STEPS (STEPS_PER_REV * TOTAL_REVS) * MICROSTEPS
+#define TRIM_STEPS 20 
 
+SoftwareSerial SoftSerial(RX_PIN, TX_PIN);
+TMC2209Stepper driver(&SoftSerial, R_SENSE, DRIVER_ADDRESS);
 AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
 IRrecv irrecv(IR_PIN);
 
@@ -43,6 +51,8 @@ int _location = 0;
 void setup() {
   Serial.begin(115200);
   while (!Serial); //wait until ready
+  SoftSerial.begin(115200);
+  driver.beginSerial(115200);
 
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(STEP_PIN, OUTPUT);
@@ -50,11 +60,21 @@ void setup() {
   pinMode(EN_PIN, OUTPUT);
   digitalWrite(EN_PIN, LOW);      // LOW means enable
 
+  IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK);
+
+  driver.begin();                 
+  driver.toff(4);                  // Enables driver in software
+  driver.rms_current(MAX_CURRENT); 
+  driver.microsteps(MICROSTEPS);
+  driver.en_spreadCycle(false);
+  driver.pwm_autoscale(true); // Needed for stealthChop
+
+  stepper.setEnablePin(EN_PIN);
   stepper.setMaxSpeed(1000);       // Set the maximum speed in steps per second
   stepper.setSpeed(600);
   stepper.setAcceleration(2000);  // Set the acceleration in steps per second^2
-  
-  IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK);
+//  stepper.setPinsInverted(false, false, true);
+//  stepper.enableOutputs();
   
   Serial.println("running...");
   writeStateToSerial();
@@ -188,17 +208,14 @@ void stepForward(int steps, bool playBuzzer) {
   Serial.print("stepForward(");
   Serial.print(steps);
   Serial.println(")");
-  //digitalWrite(DIR_PIN, LOW);
   delay(1);
-
-  for (int i = 0; i <= steps; i++) {
+  
+  stepper.move(steps);
+  while (stepper.distanceToGo() != 0) {
+    stepper.run();
     if (playBuzzer) {
       handleBuzzer();
     }
-    digitalWrite(STEP_PIN, HIGH);
-    delayMicroseconds(SPEED_DELAY);
-    digitalWrite(STEP_PIN, LOW);
-    delayMicroseconds(SPEED_DELAY);
   }
   setLocationState(_location+steps);
   noTone(BUZZER_PIN);
@@ -208,17 +225,14 @@ void stepReverse(int steps, bool playBuzzer) {
   Serial.print("stepReverse(");
   Serial.print(steps);
   Serial.println(")");
-  //digitalWrite(DIR_PIN, HIGH);
   delay(1);
 
-  for (int i = 0; i <= steps; i++) {
+  stepper.move(0-steps);
+  while (stepper.distanceToGo() != 0) {
+    stepper.run();
     if (playBuzzer) {
       handleBuzzer();
     }
-    digitalWrite(STEP_PIN, HIGH);
-    delayMicroseconds(SPEED_DELAY);
-    digitalWrite(STEP_PIN, LOW);
-    delayMicroseconds(SPEED_DELAY);
   }
   setLocationState(_location-steps);
   noTone(BUZZER_PIN);
