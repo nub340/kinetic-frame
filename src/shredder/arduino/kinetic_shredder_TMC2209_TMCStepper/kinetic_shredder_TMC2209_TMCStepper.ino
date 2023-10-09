@@ -6,7 +6,7 @@
 #define EEPROM_ADDRESS 0
 #define DRIVER_ADDRESS 0b00 // TMC2209 Driver address according to MS1 and MS2
 
-// Define stepper motor connections and steps per revolution:
+// Define Arduino pins
 #define BUZZ_PIN 2
 #define CLK_PIN 3
 #define STEP_PIN 4
@@ -19,6 +19,7 @@
 #define EN_PIN 11
 #define AUX_PIN 12
 
+// Define IR remote command codes
 #define IR_BUTTON_OK 28
 #define IR_BUTTON_UP 24
 #define IR_BUTTON_DOWN 82
@@ -27,6 +28,7 @@
 #define IR_BUTTON_ASTERISK 22
 #define IR_BUTTON_POUND 13
 
+// Define motor parameters
 #define STEPS_PER_REV 200
 #define MAX_CURRENT 1000
 #define R_SENSE 0.11f
@@ -36,10 +38,12 @@
 #define TOTAL_STEPS (STEPS_PER_REV * TOTAL_REVS) * MICROSTEPS
 #define TRIM_STEPS 20 
 
+// Instantiate classes
 IRrecv irrecv(IR_PIN);
 SoftwareSerial SoftSerial(RX_PIN, TX_PIN);
 TMC2209Stepper driver(&SoftSerial, R_SENSE, DRIVER_ADDRESS);
 
+// Initialize global variables
 long _lastBuzzerMillis = 0;
 long _irrecvPausedAtMillis = 0;
 int _buzzerState = LOW;
@@ -296,7 +300,6 @@ void stepAndBuzz(int steps, bool playBuzzer) {
  * Captures millis when reciever was stopped.
  */
 void stopIRReceiver() {
-  // capture millis when reciever was stopped.
   _irrecvPausedAtMillis = millis();
   IrReceiver.stop();
 }
