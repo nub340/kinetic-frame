@@ -1,3 +1,6 @@
+/*
+This version is for the PCB with pins and header for a proximity sensor.
+*/
 #include <IRremote.hpp>
 #include <EEPROM.h>
 #include <TMCStepper.h>
@@ -11,13 +14,14 @@
 #define CLK_PIN 3
 #define STEP_PIN 4
 #define DIR_PIN 5
-#define IR_PIN 6
+#define ECHO_PIN 6
 #define RX_PIN 7
 #define TX_PIN 8
 #define MS2_PIN 9
 #define MS1_PIN 10
 #define EN_PIN 11
-#define AUX_PIN 12
+#define IR_PIN 12 
+#define TRIG_PIN 13
 
 // Define IR remote command codes
 #define IR_BUTTON_OK 28

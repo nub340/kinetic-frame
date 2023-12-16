@@ -5,7 +5,10 @@
   <body>
     <style>
       .outer {
-        position: absolute;
+        position: relative;
+        background-color: tan;
+        width: 58vh;
+        height: 68vh;
       }
       .outer div.file-input {
         position: absolute;
@@ -28,19 +31,21 @@
       }
       .inner img {
         object-fit: cover;
-        max-width: 100%;
-        max-height: 100%;
+        width: 100%;
+        height: 100%;
         margin: auto;
       }
       .art-canvas {
-        height: 100%;
-        width: 70%;
+        height: 60vh;
+        width: 42vh;
         margin: auto;
         background-image: url("./girl_with_balloon.jpg");
         /* background-image: url("color.theory.2.png"); */
-        background-position: 0 0;
+        background-position: center;
         background-repeat: no-repeat;
         background-size: cover;
+        border: solid black 1px;
+        margin-top: 5vh;
       }
     </style>
 
@@ -67,8 +72,8 @@
     </div>
 
     <script>
-      var startPos = 0;
-      var stopPos = 500;
+      var startPos = 5;
+      var stopPos = 40;
       var increment = 0.5;
       var currentPos;
       var restart = true;
@@ -78,21 +83,24 @@
         var art = document.getElementById("artwork");
 
         function move() {
-          console.table(restart, dirForward, art.style.backgroundPosition);
+          //console.table(restart, dirForward, art.style.backgroundPosition);
 
           if (restart) {
             currentPos = startPos;
             dirForward = true;
             restart = false;
           }
-          art.style.backgroundPosition = "0 " + currentPos + "vh";
+
+          // art.style.backgroundPosition = "0 " + currentPos + "vh";
+          art.style.marginTop = currentPos + "vh";
           if (dirForward) {
             if (currentPos < stopPos) {
               currentPos += increment;
               setTimeout(move, 100);
             } else {
               dirForward = false;
-              setTimeout(move, 2000);
+              console.log('switching up, wait 2s');
+              setTimeout(move, 5000);
             }
           } else {
             if (currentPos > startPos) {
@@ -100,12 +108,13 @@
               setTimeout(move, 100);
             } else {
               dirForward = true;
-              setTimeout(move, 2000);
+              console.log('switching down, wait 2s');
+              setTimeout(move, 5000);
             }
           }
         }
 
-        move();
+        setTimeout(move, 2000);
       });
 
       function updatePreview(input, target) {
